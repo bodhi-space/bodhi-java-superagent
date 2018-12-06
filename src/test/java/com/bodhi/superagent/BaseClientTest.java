@@ -6,21 +6,23 @@ import org.junit.Before;
 
 import java.util.concurrent.TimeUnit;
 
-public class BaseClientTest {
+public abstract class BaseClientTest
+{
 
     protected Client client;
 
-    protected PollingWait wait = new PollingWait().timeoutAfter(50, TimeUnit.SECONDS)
-            .pollEvery(100, TimeUnit.MILLISECONDS);
+    protected PollingWait wait = new PollingWait().timeoutAfter(50, TimeUnit.SECONDS).pollEvery(100, TimeUnit.MILLISECONDS);
 
 
     @Before
-    public void init() {
-        client =  new Client("https://api.bodhi-dev.io", "<namespace>", new BasicCredentials("<login>", "<password>"));
+    public void init()
+    {
+        client = new Client(Environment.DEV, "<namespace>", new BearerCredentials("<token>"));
     }
 
     @After
-    public void clean() {
+    public void clean()
+    {
         client = null;
     }
 }

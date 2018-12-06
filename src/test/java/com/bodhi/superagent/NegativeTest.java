@@ -13,7 +13,7 @@ public class NegativeTest extends BaseClientTest {
         Result<JsonNode>[] done = TestUtil.createResultArray(1);
         client.get("Something", null, result -> done[0] = result);
         wait.until(() -> done[0] != null);
-        Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, done[0].getStatusCode());
-        Assert.assertNotNull(done[0].getString());
+        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, done[0].getStatusCode());
+        Assert.assertNotNull(done[0].getData());
     }
 }

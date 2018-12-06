@@ -16,67 +16,82 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 
-public class FileClient {
+public class FileClient
+{
 
-    public static final String UPLOAD_FILE_NAME = "uploadFile";
+    private static final String UPLOAD_FILE_NAME = "uploadFile";
     private final ClientConfig clientConfig;
     private Credentials credentials;
 
-    public FileClient(ClientConfig clientConfig) {
+    private static final String NAMESPACE_HEADER = "namespace";
+
+    private static final String FILES_SERVICE_PATH = "%s/files/%s/%s";
+
+
+    public FileClient(ClientConfig clientConfig)
+    {
         this.clientConfig = clientConfig;
         this.credentials = clientConfig.getCredentials();
     }
 
-    public void upload(String uploadPath, ContentType contentType, byte[] body, ResultHandler<JsonNode> handler) {
+    public void upload(String uploadPath, ContentType contentType, String bucket, byte[] body, ResultHandler<JsonNode> handler)
+    {
         fileRequest(handler, (callback) -> {
-            String fullUri = getUploadUri(uploadPath);
+            String fullUri = getFilePath(uploadPath, bucket);
             String fileName = uploadPath.substring(uploadPath.lastIndexOf('/') + 1);
             HttpRequestWithBody request = Unirest.put(fullUri);
+            request.header(NAMESPACE_HEADER, clientConfig.getNamespace());
             credentials.setAuthentication(request);
-            request.field(UPLOAD_FILE_NAME, new ByteArrayInputStream(body), ContentType.create(contentType.getMimeType()), fileName)
-                    .asJsonAsync(callback);
+            request.field(UPLOAD_FILE_NAME, new ByteArrayInputStream(body), ContentType.create(contentType.getMimeType()), fileName).asJsonAsync(callback);
 
         });
 
     }
 
 
-    public void upload(String uploadPath, File file, ResultHandler<JsonNode> handler) {
+    public void upload(String uploadPath, String bucket, File file, ResultHandler<JsonNode> handler)
+    {
         fileRequest(handler, (callback) -> {
-            String fullUri = getUploadUri(uploadPath);
+            String fullUri = getFilePath(uploadPath, bucket);
             HttpRequestWithBody request = Unirest.put(fullUri);
+            request.header(NAMESPACE_HEADER, clientConfig.getNamespace());
             credentials.setAuthentication(request);
-            request.field(UPLOAD_FILE_NAME, file)
-                    .asJsonAsync(callback);
+            request.field(UPLOAD_FILE_NAME, file).asJsonAsync(callback);
 
         });
     }
 
-    public void download(String downloadPath, ResultHandler<InputStream> handler) {
+    public void download(String downloadPath, String bucket, ResultHandler<InputStream> handler)
+    {
         fileRequest(handler, (callback) -> {
-            String fullUri = clientConfig.getUri() + "/" + clientConfig.getNamespace() + "/controllers/vertx/download/" + downloadPath;
+            String fullUri = getFilePath(downloadPath, bucket);
             HttpRequest request = Unirest.get(fullUri);
+            request.header(NAMESPACE_HEADER, clientConfig.getNamespace());
             credentials.setAuthentication(request);
             request.asBinaryAsync(callback);
         });
     }
 
-    public void delete(String deletePath, ResultHandler<JsonNode> handler) {
+    public void delete(String deletePath, String bucket, ResultHandler<JsonNode> handler)
+    {
         fileRequest(handler, (callback) -> {
-            String fullUri = getUploadUri(deletePath);
+            String fullUri = getFilePath(deletePath, bucket);
             HttpRequestWithBody request = Unirest.delete(fullUri);
+            request.header(NAMESPACE_HEADER, clientConfig.getNamespace());
             credentials.setAuthentication(request);
             request.asJsonAsync(callback);
         });
     }
 
-    private String getUploadUri(String uploadPath) {
-        return clientConfig.getUri() + "/" + clientConfig.getNamespace() + "/controllers/vertx/upload/" + uploadPath;
-    }
-
-    private <T> void fileRequest(ResultHandler<T> handler, BackoffResultHandler<T> resultHandler) {
+    private <T> void fileRequest(ResultHandler<T> handler, BackoffResultHandler<T> resultHandler)
+    {
         BackoffCallback<T> backoffCallback = new BackoffCallback<>(clientConfig.getBackoffConfig(), handler, resultHandler);
         resultHandler.handle(backoffCallback);
+    }
+
+    private String getFilePath(String path, String bucket)
+    {
+        return String.format(FILES_SERVICE_PATH, clientConfig.getFilesUri(), path, bucket);
     }
 
 
